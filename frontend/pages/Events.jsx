@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import { Calendar, Clock, MapPin, Info, Users, Sparkles, AlertCircle, Activity, Heart } from "lucide-react"
 
-const API_KEY = "AIzaSyD9wYUNE67azqMmYCUKQQ2ATfOopW8JFNk"
 const CALENDAR_ID = "singh0810.akash@gmail.com"
 
 // Dummy events data
