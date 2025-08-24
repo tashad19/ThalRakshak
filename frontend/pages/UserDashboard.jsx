@@ -22,9 +22,9 @@ import {
   Eye,
   LogOut,
   Settings,
+  Trophy,
 } from "lucide-react"
 import axios from "axios"
-import ChatBot from "../components/ChatBot"
 
 // Memoized components to prevent re-renders
 const StatCard = React.memo(({ title, value, icon: Icon, color, bgColor, delay = 0 }) => (
@@ -348,6 +348,10 @@ const UserDashboard = () => {
     [navigate],
   )
 
+  const handleLeaderboard = useCallback(() => {
+    navigate("/leaderboard")
+  }, [navigate])
+
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token")
     localStorage.removeItem("userType")
@@ -520,6 +524,15 @@ const UserDashboard = () => {
               <AlertCircle size={20} className="mr-2" />
               Emergency Request
             </motion.button>
+            <motion.button
+              onClick={handleLeaderboard}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center min-h-[56px] border border-yellow-500/50"
+            >
+              <Trophy size={20} className="mr-2" />
+              View Leaderboard
+            </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -647,8 +660,6 @@ const UserDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Add ChatBot at the end, before closing div */}
-      <ChatBot />
     </div>
   )
 }

@@ -18,6 +18,11 @@ const hospitalSchema = new mongoose.Schema({
     location: {
         city: { type: String, required: true },
         state: { type: String, required: true },
+        coordinates: {
+            latitude: { type: Number, default: null },
+            longitude: { type: Number, default: null }
+        },
+        address: { type: String, default: "" }
     },
     inventory: {
         aPositive: { type: Number, default: 0 },

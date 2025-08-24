@@ -16,6 +16,9 @@ import {
   Droplet,
   Users,
   Calendar,
+  Navigation,
+  Map,
+  Crosshair,
 } from "lucide-react"
 
 const HospitalDetails = () => {
@@ -24,6 +27,10 @@ const HospitalDetails = () => {
   const [hospital, setHospital] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showMap, setShowMap] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [navigationUrl, setNavigationUrl] = useState("")
 
   useEffect(() => {
     const fetchHospitalDetails = async () => {
@@ -42,6 +49,46 @@ const HospitalDetails = () => {
 
     fetchHospitalDetails()
   }, [id])
+
+  const getUserLocation = () => {
+    setIsGettingLocation(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          setUserLocation({ latitude, longitude })
+          setIsGettingLocation(false)
+          
+          // Generate navigation URL for OpenStreetMap
+          if (hospital?.location?.coordinates?.latitude && hospital?.location?.coordinates?.longitude) {
+            const url = `https://www.openstreetmap.org/directions?from=${latitude},${longitude}&to=${hospital.location.coordinates.latitude},${hospital.location.coordinates.longitude}&route=1`
+            setNavigationUrl(url)
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error)
+          setIsGettingLocation(false)
+          alert("Unable to get your location. Please check your browser permissions.")
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      )
+    } else {
+      setIsGettingLocation(false)
+      alert("Geolocation is not supported by this browser.")
+    }
+  }
+
+  const openNavigation = () => {
+    if (navigationUrl) {
+      window.open(navigationUrl, '_blank')
+    } else {
+      alert("Please get your location first to enable navigation.")
+    }
+  }
 
   if (isLoading) {
     return (
@@ -147,6 +194,36 @@ const HospitalDetails = () => {
               </div>
             </div>
             <div className="mt-4 md:mt-0 flex items-center space-x-4">
+              {/* Navigation Buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={getUserLocation}
+                  disabled={isGettingLocation}
+                  className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 disabled:opacity-50"
+                  title="Get My Location"
+                >
+                  {isGettingLocation ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Crosshair size={20} />
+                  )}
+                </button>
+                <button
+                  onClick={openNavigation}
+                  disabled={!navigationUrl}
+                  className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 disabled:opacity-50"
+                  title="Open Navigation"
+                >
+                  <Navigation size={20} />
+                </button>
+                <button
+                  onClick={() => setShowMap(!showMap)}
+                  className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20"
+                  title="Show Map"
+                >
+                  <Map size={20} />
+                </button>
+              </div>
               <button
                 onClick={() => window.open(`tel:${hospital.phone}`)}
                 className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20"
@@ -162,6 +239,106 @@ const HospitalDetails = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Navigation Map Section */}
+        {showMap && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8"
+          >
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <Map size={20} className="mr-2 text-blue-400" />
+                Location & Navigation
+              </h3>
+              
+              {hospital.location.coordinates?.latitude && hospital.location.coordinates?.longitude ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-xl p-4">
+                      <h4 className="text-white font-medium mb-2">Hospital Coordinates</h4>
+                      <p className="text-white/70 text-sm">
+                        Latitude: {hospital.location.coordinates.latitude.toFixed(6)}
+                      </p>
+                      <p className="text-white/70 text-sm">
+                        Longitude: {hospital.location.coordinates.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                    {userLocation && (
+                      <div className="bg-white/5 rounded-xl p-4">
+                        <h4 className="text-white font-medium mb-2">Your Location</h4>
+                        <p className="text-white/70 text-sm">
+                          Latitude: {userLocation.latitude.toFixed(6)}
+                        </p>
+                        <p className="text-white/70 text-sm">
+                          Longitude: {userLocation.longitude.toFixed(6)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    {!userLocation ? (
+                      <button
+                        onClick={getUserLocation}
+                        disabled={isGettingLocation}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+                      >
+                        {isGettingLocation ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Getting Location...
+                          </>
+                        ) : (
+                          <>
+                            <Crosshair size={16} className="mr-2" />
+                            Get My Location
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={openNavigation}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                      >
+                        <Navigation size={16} className="mr-2" />
+                        Open Navigation
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Embedded OpenStreetMap */}
+                  <div className="w-full h-64 rounded-xl overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight="0"
+                      marginWidth="0"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${hospital.location.coordinates.longitude-0.01},${hospital.location.coordinates.latitude-0.01},${hospital.location.coordinates.longitude+0.01},${hospital.location.coordinates.latitude+0.01}&layer=mapnik&marker=${hospital.location.coordinates.latitude},${hospital.location.coordinates.longitude}`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle size={48} className="mx-auto text-yellow-400 mb-4" />
+                  <p className="text-white/70 mb-4">
+                    Hospital location coordinates are not available. Please contact the hospital to update their location information.
+                  </p>
+                  <button
+                    onClick={() => window.open(`mailto:${hospital.email}?subject=Location Update Request&body=Please update the hospital location coordinates for navigation purposes.`)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Request Location Update
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Contact & Info */}

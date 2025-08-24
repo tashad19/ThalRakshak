@@ -321,6 +321,54 @@ const requestBlood = async (req, res) => {
     }
 };
 
+const updateLocation = async (req, res) => {
+    try {
+        const { latitude, longitude, address } = req.body;
+        
+        // Validate coordinates
+        if (latitude === undefined || longitude === undefined) {
+            return res.status(400).json({ message: "Latitude and longitude are required" });
+        }
+        
+        if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+            return res.status(400).json({ message: "Latitude and longitude must be numbers" });
+        }
+        
+        if (latitude < -90 || latitude > 90) {
+            return res.status(400).json({ message: "Latitude must be between -90 and 90" });
+        }
+        
+        if (longitude < -180 || longitude > 180) {
+            return res.status(400).json({ message: "Longitude must be between -180 and 180" });
+        }
+
+        const hospital = await Hospital.findById(req.user.id);
+        if (!hospital) {
+            return res.status(404).json({ message: "Hospital not found" });
+        }
+
+        // Update location coordinates
+        hospital.location.coordinates = {
+            latitude: latitude,
+            longitude: longitude
+        };
+        
+        if (address) {
+            hospital.location.address = address;
+        }
+
+        const updatedHospital = await hospital.save();
+
+        res.json({
+            message: "Location updated successfully",
+            location: updatedHospital.location
+        });
+    } catch (err) {
+        console.error("Error updating location:", err);
+        res.status(500).json({ message: "Error updating location" });
+    }
+};
+
 module.exports = {
     getHospitalProfile,
     updateInventory,
@@ -328,5 +376,6 @@ module.exports = {
     getHospitalById,
     addReview,
     requestBlood,
-    findNearestHospital, // Add this line
+    findNearestHospital,
+    updateLocation, // Add this line
 };

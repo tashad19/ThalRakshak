@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const fileUpload = require('express-fileupload');
 const cors = require("cors");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes.js");
@@ -10,35 +11,41 @@ const chatbotRoutes = require("./routes/chatbotRoutes");
 const donorRoutes = require("./routes/donorRoutes");
 const { verifyEmailService } = require('./utils/emailService');
 const predictRoute = require('./routes/predict');
-const contactRoutes = require("./routes/contactRoutes")
+const contactRoutes = require("./routes/contactRoutes");
+const flaskChatRoutes = require("./routes/flaskChatRoutes");
+const imageRoutes = require("./routes/imageRoutes");
+const leaderboardRoutes = require("./routes/leaderboardRoutes");
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Enable CORS for all origins
+app.use(cors({ origin: "*", credentials: true }));
+
 // Middleware
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5173/contact",
   "http://localhost:4173", // add this
-  "https://blood-connection.vercel.app" // or your production domain if any
+  "https://thal-rakshak.vercel.app" // or your production domain if any
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS: " + origin));
-    }
-  },
-  credentials: true,
-}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 verifyEmailService();
+
+// Configure fileUpload middleware
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  abortOnLimit: true,
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
+
+// Image processing route
+app.use("/api/process-image", imageRoutes);
 
 // Routes
 app.get("/", (req, res) => {
@@ -65,7 +72,10 @@ app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/donate", donorRoutes);
 app.use("/api/donors", donorRoutes); 
 app.use('/api/predict', predictRoute);
-app.use("/api/contact", contactRoutes)
+app.use("/api/contact", contactRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
+
+app.use("/api/intent", flaskChatRoutes);
 
 // MongoDB Connection
 mongoose

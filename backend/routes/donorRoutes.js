@@ -7,6 +7,8 @@ const {
     searchDonors
 } = require("../controllers/donorController");
 const { sendDonorContactEmail } = require('../utils/emailService');
+const { updateDonationCount } = require('../controllers/leaderboardController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // POST /api/donate/   →  Register donor
 router.post("/", registerDonor);
@@ -18,6 +20,28 @@ router.get("/search", searchDonors);
 
 // PUT /api/donate/:id →  Update a donor (optional)
 router.put("/:id", updateDonor);
+
+// POST /api/donate/complete →  Complete a donation (updates user stats)
+router.post("/complete", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await updateDonationCount(userId);
+        
+        res.json({
+            success: true,
+            message: "Donation completed successfully!",
+            newLevel: result.newLevel,
+            newBadges: result.newBadges,
+            experience: result.experience
+        });
+    } catch (error) {
+        console.error("Error completing donation:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to complete donation"
+        });
+    }
+});
 
 // Route for sending email to donors (for your find-donor feature)
 router.post('/send-email', async (req, res) => {

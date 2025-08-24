@@ -54,16 +54,22 @@ const EmergencyRequest = () => {
                 async (position) => {
                     const { latitude, longitude } = position.coords;
                     try {
-                        // Reverse geocoding (you'd use a real service like Google Maps API)
-                        const mockAddress =
-                            "123 Emergency St, Medical District";
-                        const mockCity = "Healthcare City";
+                        // Call OpenStreetMap Nominatim reverse geocoding API
+                        const res = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+                        );
+                        const data = await res.json();
+
+                        const address = data.display_name || "Unknown location";
+                        const city = data.address.city || 
+                                    data.address.town || 
+                                    data.address.village || "Unknown city";
 
                         setFormData((prev) => ({
                             ...prev,
                             location: {
-                                address: mockAddress,
-                                city: mockCity,
+                                address,
+                                city,
                                 coordinates: { latitude, longitude },
                             },
                         }));
@@ -74,9 +80,7 @@ const EmergencyRequest = () => {
                     setLocationLoading(false);
                 },
                 (error) => {
-                    toast.error(
-                        "Location access denied. Please enter manually."
-                    );
+                    toast.error("Location access denied. Please enter manually.");
                     setLocationLoading(false);
                 }
             );
@@ -85,6 +89,7 @@ const EmergencyRequest = () => {
             setLocationLoading(false);
         }
     }, []);
+
 
     const handleSubmit = useCallback(
         async (e) => {

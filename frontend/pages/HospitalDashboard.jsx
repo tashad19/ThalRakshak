@@ -16,8 +16,9 @@ import {
   BarChart3,
   LogOut,
   Settings,
+  Navigation,
+  Crosshair,
 } from "lucide-react"
-import ChatBot from "../components/ChatBot"
 
 const HospitalDashboard = () => {
   const navigate = useNavigate()
@@ -35,6 +36,13 @@ const HospitalDashboard = () => {
   const [updating, setUpdating] = useState(false)
   const [hospital, setHospital] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showLocationUpdate, setShowLocationUpdate] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [locationData, setLocationData] = useState({
+    latitude: "",
+    longitude: "",
+    address: ""
+  })
 
   // Check authentication on mount
   useEffect(() => {
@@ -187,6 +195,107 @@ const HospitalDashboard = () => {
     }))
   }, [])
 
+  const getUserLocation = () => {
+    setIsGettingLocation(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          setLocationData(prev => ({
+            ...prev,
+            latitude: latitude.toString(),
+            longitude: longitude.toString()
+          }))
+          setIsGettingLocation(false)
+        },
+        (error) => {
+          console.error("Error getting location:", error)
+          setIsGettingLocation(false)
+          toast.error("Unable to get your location. Please check your browser permissions.", {
+            style: {
+              background: "linear-gradient(135deg, #ef4444, #dc2626)",
+              color: "white",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.2)",
+            },
+          })
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      )
+    } else {
+      setIsGettingLocation(false)
+      toast.error("Geolocation is not supported by this browser.", {
+        style: {
+          background: "linear-gradient(135deg, #ef4444, #dc2626)",
+          color: "white",
+          borderRadius: "12px",
+          border: "1px solid rgba(255,255,255,0.2)",
+        },
+      })
+    }
+  }
+
+  const handleLocationUpdate = async () => {
+    try {
+      if (!locationData.latitude || !locationData.longitude) {
+        toast.error("Please provide latitude and longitude", {
+          style: {
+            background: "linear-gradient(135deg, #ef4444, #dc2626)",
+            color: "white",
+            borderRadius: "12px",
+            border: "1px solid rgba(255,255,255,0.2)",
+          },
+        })
+        return
+      }
+
+      const response = await axios.put(
+        "http://localhost:5000/api/hospitals/location",
+        {
+          latitude: parseFloat(locationData.latitude),
+          longitude: parseFloat(locationData.longitude),
+          address: locationData.address
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+
+      if (response.data) {
+        setHospital(prev => ({
+          ...prev,
+          location: response.data.location
+        }))
+        setShowLocationUpdate(false)
+        toast.success("Location updated successfully!", {
+          style: {
+            background: "linear-gradient(135deg, #10b981, #059669)",
+            color: "white",
+            borderRadius: "12px",
+            border: "1px solid rgba(255,255,255,0.2)",
+          },
+        })
+      }
+    } catch (err) {
+      console.error("Location update error:", err)
+      toast.error(err.response?.data?.message || "Failed to update location", {
+        style: {
+          background: "linear-gradient(135deg, #ef4444, #dc2626)",
+          color: "white",
+          borderRadius: "12px",
+          border: "1px solid rgba(255,255,255,0.2)",
+        },
+      })
+    }
+  }
+
   // Memoized components and values
   const AnimatedSection = useMemo(() => {
     return ({ children, delay = 0 }) => {
@@ -304,6 +413,15 @@ const HospitalDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => navigate(`/hospital-details/${hospital?._id}`)}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center"
+                  >
+                    <MapPin className="w-5 h-5 mr-2" />
+                    View Details
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => navigate("/blood-predictor")}
                     className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center"
                   >
@@ -364,8 +482,127 @@ const HospitalDashboard = () => {
           </div>
         </AnimatedSection>
 
-        {/* Inventory Management */}
+        {/* Location Management */}
         <AnimatedSection delay={0.4}>
+          <div className="max-w-7xl mx-auto px-6 mb-8">
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-white">Location Management</h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowLocationUpdate(!showLocationUpdate)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center"
+                >
+                  <MapPin className="w-5 h-5 mr-2" />
+                  {showLocationUpdate ? "Hide Location Update" : "Update Location"}
+                </motion.button>
+              </div>
+
+              {showLocationUpdate && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-white font-medium mb-2">Latitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={locationData.latitude}
+                          onChange={(e) => setLocationData(prev => ({ ...prev, latitude: e.target.value }))}
+                          className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-green-400/50 transition-all duration-300"
+                          placeholder="Enter latitude"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white font-medium mb-2">Longitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={locationData.longitude}
+                          onChange={(e) => setLocationData(prev => ({ ...prev, longitude: e.target.value }))}
+                          className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-green-400/50 transition-all duration-300"
+                          placeholder="Enter longitude"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-white font-medium mb-2">Address (Optional)</label>
+                        <textarea
+                          value={locationData.address}
+                          onChange={(e) => setLocationData(prev => ({ ...prev, address: e.target.value }))}
+                          className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-green-400/50 transition-all duration-300 h-24 resize-none"
+                          placeholder="Enter full address"
+                        />
+                      </div>
+                      <button
+                        onClick={getUserLocation}
+                        disabled={isGettingLocation}
+                        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                      >
+                        {isGettingLocation ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Getting Location...
+                          </>
+                        ) : (
+                          <>
+                            <Crosshair size={16} className="mr-2" />
+                            Detect My Location
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleLocationUpdate}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                    >
+                      <Save className="w-5 h-5 mr-2" />
+                      Save Location
+                    </button>
+                    <button
+                      onClick={() => setShowLocationUpdate(false)}
+                      className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {hospital?.location?.coordinates?.latitude && (
+                    <div className="bg-white/5 rounded-xl p-4">
+                      <h4 className="text-white font-medium mb-2">Current Location</h4>
+                      <p className="text-white/70 text-sm">
+                        Latitude: {hospital.location.coordinates.latitude.toFixed(6)}
+                      </p>
+                      <p className="text-white/70 text-sm">
+                        Longitude: {hospital.location.coordinates.longitude.toFixed(6)}
+                      </p>
+                      {hospital.location.address && (
+                        <p className="text-white/70 text-sm">
+                          Address: {hospital.location.address}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          </div>
+        </AnimatedSection>
+
+        {/* Inventory Management */}
+        <AnimatedSection delay={0.6}>
           <div className="max-w-7xl mx-auto px-6">
             <motion.div
               whileHover={{ scale: 1.01 }}
@@ -427,8 +664,6 @@ const HospitalDashboard = () => {
         </AnimatedSection>
       </div>
 
-      {/* Add ChatBot at the end, before closing div */}
-      <ChatBot />
     </div>
   )
 }

@@ -13,7 +13,19 @@ const userSchema = new mongoose.Schema({
         longitude: { type: Number },
     },
     organDonation: { type: Boolean, default: false },
-});
+    // Gamification fields
+    donationCount: { type: Number, default: 0 },
+    totalDonations: { type: Number, default: 0 },
+    lastDonationDate: { type: Date },
+    badges: [{
+        name: { type: String },
+        description: { type: String },
+        earnedDate: { type: Date, default: Date.now },
+        icon: { type: String }
+    }],
+    level: { type: Number, default: 1 },
+    experience: { type: Number, default: 0 }
+}, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
 

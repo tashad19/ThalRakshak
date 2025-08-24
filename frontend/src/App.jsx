@@ -23,6 +23,11 @@ import FindDonor from "../pages/FindDonor";
 import Requests from "../pages/Requests";
 import BloodPredictor from "../pages/BloodPredictor";
 import { Analytics } from "@vercel/analytics/react";
+import CostCalculator from "../pages/CostCalculator";
+import FinancialAid from "../pages/FinancialAid";
+import Leaderboard from "../components/Leaderboard";
+
+import ChatbotWidget from "../components/chatbot/chatbot-widget";
 
 // Simple 404 page
 const NotFound = () => (
@@ -93,6 +98,10 @@ const App = () => {
                             path="/hospital/:id"
                             element={<HospitalDetails />}
                         />
+                        <Route
+                            path="/hospital-details/:id"
+                            element={<HospitalDetails />}
+                        />
                         <Route path="/requests" element={<Requests />} />
                         <Route
                             path="/emergency"
@@ -107,9 +116,23 @@ const App = () => {
                             path="/blood-predictor"
                             element={<BloodPredictor />}
                         />
+                        <Route
+                            path="/cost-calculator"
+                            element={<CostCalculator />}
+                        />
+                        <Route
+                            path="/financial-aid"
+                            element={<FinancialAid />}
+                        />
+                        <Route
+                            path="/leaderboard"
+                            element={<Leaderboard />}
+                        />
                     </Routes>
                 </Layout>
             </Router>
+            {/* Chatbot Widget */}
+            <ChatbotWidget />
             <Analytics />
         </>
     );

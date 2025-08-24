@@ -102,6 +102,7 @@ const Navbar = () => {
         () => [
             { to: "/user-dashboard", label: "Dashboard", icon: User },
             { to: "/about", label: "About", icon: null },
+            { to: "/financial-aid", label: "Financial Aid", icon: null },
             { to: "/events", label: "Events", icon: null },
         ],
         []
